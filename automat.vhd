@@ -96,7 +96,7 @@ testcntr <= to_unsigned( counter, 8 );	-- Internal debug signal, as Isim doesn't
 
 pout <= adcRegister when control_mode = '0' else ("00000000") & statusRegister;
 
-data_mode <= pin( 5 downto 4 ) when pin( 14 downto 11 ) = "0010" else data_mode;
+data_mode <= pin( 5 downto 4 ) when pin( 14 downto 11 ) = "0010" else dataMode;
 
 shift_msb <= 	shiftOutRegister( 15 ) when dataMode = "00" else
 					shiftOutRegister( 19 ) when dataMode = "01" else 
