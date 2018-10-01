@@ -55,7 +55,7 @@ signal curState : StateType;
 signal nextState : StateType;											-- current state
 signal dataMode : std_logic_vector( 1 downto 0 );				-- data width mode (16/20/24 bits)
 
-signal counter : integer range 0 to 63;							-- intrnal counter for shifting and waiting
+signal counter : integer range 0 to 4095;							-- intrnal counter for shifting and waiting
 
 signal controlRegister : std_logic_vector( 15 downto 0 );	-- holding next control word to send, reset to zero after shifting
 signal statusRegister : std_logic_vector( 15 downto 0 );		-- holding last received status word
@@ -129,68 +129,72 @@ begin
 		counter <= 0;
 		dataMode <= "00";
 		
-	elsif( clock' event and enable = '1' ) then
-		if( clock = '1' ) then 
-			
-			curState <= nextState;
-			
-			-- increment or reset the counter synchronously
-			if( ctr_reset = '1' ) then
-				counter <= 0;
-			elsif( ctr_inc = '1' ) then 
-				counter <= counter +1;
-			end if;
-			
-			-- Shift data out from register
-			if( shift_out = '1' ) then
-				shiftOutRegister <= shiftOutRegister( 22 downto 0 ) & '0';
-			end if;
-			
-			
---			-- Load the control or dac register to the shifter
-			if( load_control= '1' ) then
-				shiftOutRegister <= ("00000000") & controlRegister;
-				controlRegister <= (others => '0' );
-				
-			elsif( load_dac = '1' ) then 
-				shiftOutRegister <= dacRegister;
-			end if;
-			
-			-- Save rcv-shift register to data registers
-			if( save_status = '1' ) then
-				statusRegister <= shiftInRegister( 15 downto 0 );
-			elsif( save_adc = '1' ) then 
-				adcRegister <= shift_adc_value;
-			end if;
-			
-			-- Save new input data to the control or dac register
-			if( set = '1' ) then
-				if( control_mode = '1' ) then
-					if( load_control = '0' and reg_guard = '0' ) then
-					
-						controlRegister <= pin( 15 downto 0 );
-						dataMode <= data_mode;
-					end if;
-				else 
-					dacRegister <= pin;
-				end if;
-			end if;
-			
-		else 
-			
-			-- only allow negative edge triggering in sync-states
-			if( negedge = '1' ) then
+	elsif( clock' event ) then
+		if( enable = '1' ) then
+		
+			if( clock = '1' ) then 
 				
 				curState <= nextState;
 				
-				-- Shift data into register
-				if( shift_in = '1' ) then
-					shiftInRegister <= shiftInRegister( 22 downto 0 ) & codec_din;
+				-- increment or reset the counter synchronously
+				if( ctr_reset = '1' ) then
+					counter <= 0;
+				elsif( ctr_inc = '1' ) then 
+					counter <= counter +1;
 				end if;
-							
+				
+				-- Shift data out from register
+				if( shift_out = '1' ) then
+					shiftOutRegister <= shiftOutRegister( 22 downto 0 ) & '0';
+				end if;
+				
+				
+	--			-- Load the control or dac register to the shifter
+				if( load_control= '1' ) then
+					shiftOutRegister <= ("00000000") & controlRegister;
+					controlRegister <= (others => '0' );
+					
+				elsif( load_dac = '1' ) then 
+					shiftOutRegister <= dacRegister;
+				end if;
+				
+				-- Save rcv-shift register to data registers
+				if( save_status = '1' ) then
+					statusRegister <= shiftInRegister( 15 downto 0 );
+				elsif( save_adc = '1' ) then 
+					adcRegister <= shift_adc_value;
+				end if;
+				
+				-- Save new input data to the control or dac register
+				if( set = '1' ) then
+					if( control_mode = '1' ) then
+						if( load_control = '0' and reg_guard = '0' ) then
+						
+							controlRegister <= pin( 15 downto 0 );
+							dataMode <= data_mode;
+						end if;
+					else 
+						dacRegister <= pin;
+					end if;
+				end if;
+				
+			else 
+				
+				-- only allow negative edge triggering in sync-states
+				if( negedge = '1' ) then
+					
+					curState <= nextState;
+					
+					-- Shift data into register
+					if( shift_in = '1' ) then
+						shiftInRegister <= shiftInRegister( 22 downto 0 ) & codec_din;
+					end if;
+								
+					
+				end if;
 				
 			end if;
-			
+		
 		end if;
 		
 	end if;
@@ -229,7 +233,7 @@ begin
 			reg_guard <= '1';			
 			codec_reset <= '1';
 			
-			if( counter = 10 ) then
+			if( counter = 4000 ) then
 				ctr_reset <= '1';
 				
 				nextState <= getSync;
@@ -401,4 +405,3 @@ end process ASYNC;
 
 
 end Behavioral;
-
